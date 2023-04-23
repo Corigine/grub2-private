@@ -26,8 +26,10 @@
 #include <grub/env.h>
 #include <grub/partition.h>
 #include <grub/i18n.h>
+#include <grub/pcinet.h>
 
 grub_net_t (*grub_net_open) (const char *name) = NULL;
+grub_pcinet_t (*grub_pcinet_open) (const char *name) = NULL;
 
 grub_device_t
 grub_device_open (const char *name)
@@ -49,6 +51,7 @@ grub_device_open (const char *name)
     goto fail;
 
   dev->net = NULL;
+  dev->pcinet = NULL;
   /* Try to open a disk.  */
   dev->disk = grub_disk_open (name);
   if (dev->disk)
@@ -61,6 +64,13 @@ grub_device_open (const char *name)
 
   if (dev->net)
     return dev;
+
+  if (grub_pcinet_open){
+    grub_errno = GRUB_ERR_NONE;
+    dev->pcinet = grub_pcinet_open (name);
+    if (dev->pcinet)
+      return dev;
+  }
 
  fail:
   grub_free (dev);
@@ -79,6 +89,9 @@ grub_device_close (grub_device_t device)
       grub_free (device->net->server);
       grub_free (device->net);
     }
+
+  if (device->pcinet)
+    grub_free(device->pcinet);
 
   grub_free (device);
 
